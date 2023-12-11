@@ -1,0 +1,40 @@
+# fly.toml
+
+app = "sensor-data"
+
+# Processes
+[[services]]
+  name = "python-server"
+  script = "docker-entrypoint.sh"
+  command = ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "main:app"]
+  # Mount volumes for data persistence
+  [services.mounts]
+    source = "python-server-data"
+    destination = "/app/data"
+    readonly = false
+  # Expose ports
+  [services.ports]
+    port = 80
+    protocol = "tcp"
+
+[[services]]
+  name = "grafana"
+  image = "grafana/grafana:latest"
+  # Mount volumes for data persistence
+  [services.mounts]
+    source = "grafana-data"
+    destination = "/var/lib/grafana"
+    readonly = false
+  # Expose ports
+  [services.ports]
+    port = 3000
+    protocol = "tcp"
+
+# Volumes
+[[mounts]]
+  source = "python-server-data"
+  destination = "/app/data"
+
+[[mounts]]
+  source = "grafana-data"
+  destination = "/var/lib/grafana"
