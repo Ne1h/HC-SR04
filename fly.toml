@@ -1,40 +1,55 @@
-# fly.toml
+# fly.toml app configuration file generated for hcsr04 on 2023-12-12T04:15:31+07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "sensor-data"
+app = "hcsr04"
+primary_region = "sin"
 
-# Processes
+[build]
+
+[processes]
+grafana = "env GF_INSTALL_PLUGINS=marcusolsson-csv-datasource /run.sh"
+server = "sh -c 'cd /app; uvicorn server:app --host 0.0.0.0 --port 8080'"
+
+[mounts]
+source = "server_data"
+destination = "/app/data"
+processes = ["server", "grafana"]
+
 [[services]]
-  name = "python-server"
-  script = "docker-entrypoint.sh"
-  command = ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "main:app"]
-  # Mount volumes for data persistence
-  [services.mounts]
-    source = "python-server-data"
-    destination = "/app/data"
-    readonly = false
-  # Expose ports
-  [services.ports]
-    port = 80
-    protocol = "tcp"
+protocol = "tcp"
+internal_port = 8080
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ["server"]
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+force_https = true
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+[services.concurrency]
+type = "requests"
+hard_limit = 250
+soft_limit = 200
 
 [[services]]
-  name = "grafana"
-  image = "grafana/grafana:latest"
-  # Mount volumes for data persistence
-  [services.mounts]
-    source = "grafana-data"
-    destination = "/var/lib/grafana"
-    readonly = false
-  # Expose ports
-  [services.ports]
-    port = 3000
-    protocol = "tcp"
+protocol = "tcp"
+internal_port = 3000
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ["grafana"]
 
-# Volumes
-[[mounts]]
-  source = "python-server-data"
-  destination = "/app/data"
-
-[[mounts]]
-  source = "grafana-data"
-  destination = "/var/lib/grafana"
+[[services.ports]]
+handlers = ["tls", "http"]
+port = 3000
+[services.concurrency]
+type = "requests"
+hard_limit = 250
+soft_limit = 200

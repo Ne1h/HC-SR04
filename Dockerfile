@@ -1,19 +1,26 @@
 # Dockerfile
 
-# Sử dụng hình ảnh cơ sở với Python và FastAPI
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
+FROM grafana/grafana-oss:latest as grafana
 
 # Đặt thư mục làm việc
 WORKDIR /app
 
+USER root
+
 # Sao chép mã nguồn vào thư mục làm việc
 COPY . /app
+RUN rm /etc/grafana/grafana.ini && ln -s /app/grafana.ini /etc/grafana/grafana.ini
+RUN chmod +x /app/entrypoint.sh
+RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing python3 py3-pip
 
-# Cài đặt các phụ thuộc từ requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r /app/requirements.txt
+
+USER grafana
+
+# Expose port cho Grafana
+EXPOSE 3000
 
 # Expose port cho FastAPI
-EXPOSE 80
+EXPOSE 8080
 
-# Lệnh để chạy máy chủ FastAPI
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+ENTRYPOINT ["/app/entrypoint.sh"]
